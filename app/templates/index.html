@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Translation Machine</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>English to French Translator</h1>
+        <form id="translation-form">
+            <textarea id="english-input" placeholder="Enter English text here..." rows="5"></textarea>
+            <button type="submit">Translate</button>
+        </form>
+        <div id="result">
+            <h2>French Translation:</h2>
+            <p id="french-output"></p>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='scripts.js') }}"></script>
+</body>
+</html>
