@@ -8,6 +8,8 @@ transformers = "4.46.3"
 torch = "*"
 flask = "*"
 pandas = "*"
+python-dotenv = "*"
+googletrans = "*"
 
 [dev-packages]
 

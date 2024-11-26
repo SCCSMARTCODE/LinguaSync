@@ -7,6 +7,7 @@ CSV_PATH = "../english_french_sample.csv"
 PROCESSED_PATH = "../tokenized_dataset.pt"
 
 tokenizer = BertTokenizerFast.from_pretrained("bert-base-multilingual-cased")
+print(f"My Tokenizer has vocab size of [ {tokenizer.vocab_size} ]")
 
 if os.path.exists(CSV_PATH):
     print("This path does Exists")
