@@ -1,5 +1,6 @@
 import torch
 from torch.utils.data import Dataset
+import gc
 from contextlib import contextmanager
 from torch.utils.data import DataLoader
 
@@ -29,32 +30,26 @@ class TranslationDataset(Dataset):
         return input_ids, attention_mask, labels
 
 
-@contextmanager
-def custom_dl(data_loader: DataLoader, device):
-    """
-    A context manager for safely handling data loading and GPU cleanup.
+class CustomDL:
+    def __init__(self, dataloader, device='cuda' if torch.cuda.is_available() else 'cpu'):
+        self.dataloader = dataloader
+        self.device = device
 
-    Args:
-        data_loader: PyTorch DataLoader object.
-        device: The device (CPU or GPU) to which the data should be moved.
+    def __iter__(self):
+        try:
+            for batch in self.dataloader:
+                input_ids, attention_mask, labels = batch
+                input_ids, attention_mask, labels = (
+                    input_ids.to(self.device),
+                    attention_mask.to(self.device),
+                    labels.to(self.device),
+                )
+                yield input_ids, attention_mask, labels
+                del input_ids, attention_mask, labels
+                torch.cuda.empty_cache() if self.device == 'cuda' else None
+                gc.collect()
+        except Exception as e:
+            print(f"Exception [ {e} ] occurred when trying to load data to {self.device}")
 
-    Yields:
-        in_seq, attention_mask, out_seq: Batched data moved to the specified device.
-    """
-    try:
-        for batch in data_loader:
-            input_ids, attention_mask, labels = batch
-
-            input_ids = input_ids.to(device)
-            attention_mask = attention_mask.to(device)
-            labels = labels.to(device)
-
-            yield input_ids, attention_mask, labels
-
-            del input_ids, attention_mask, labels
-            torch.cuda.empty_cache()
-
-    except Exception as e:
-        print(f"Exception occurred during data loading: {e}")
-    finally:
-        torch.cuda.empty_cache()
+    def __len__(self):
+        return len(self.dataloader)
