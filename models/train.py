@@ -1,5 +1,6 @@
 import torch
 from tqdm import tqdm
+from data.utils.build_custom_tokenizer import tokenize_sentence
 
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, device, num_epochs, gradient_clipping_value, log_interval, save_path):
@@ -65,3 +66,49 @@ def validate_model(model, val_loader, criterion, device):
 
     avg_loss = total_loss / len(val_loader)
     print(f"Validation Loss: {avg_loss:.4f}")
+
+
+def evaluate_translation(model, tokenizer, input_text, device, max_len=128):
+    """
+    Generate a translation for the given input text using the custom tokenizer and model.
+
+    :param model: Trained NMT model.
+    :param tokenizer: Custom tokenizer with encode/decode functionality.
+    :param input_text: Text in the source language (English).
+    :param device: Device (CPU or GPU).
+    :param max_len: Maximum length for generated sequences.
+    """
+    model.eval()
+    with torch.no_grad():
+
+        tokenized = tokenize_sentence(tokenizer, input_text, max_length=max_len)
+        input_ids = torch.tensor([tokenized['input_ids']], dtype=torch.long).to(device)
+        attention_mask = torch.tensor([tokenized['attention_mask']], dtype=torch.long).to(device)
+
+        bos_token_id = tokenizer.token_to_id("<s>")
+        eos_token_id = tokenizer.token_to_id("</s>")
+        tgt_input_ids = torch.tensor([[bos_token_id]], dtype=torch.long).to(device)
+
+        generated_ids = []
+
+        for _ in range(max_len):
+            outputs = model(
+                src_input_ids=input_ids,
+                src_attention_mask=attention_mask,
+                tgt_input_ids=tgt_input_ids
+            )
+
+            next_token_id = torch.argmax(outputs[:, -1, :], dim=-1).item()
+            generated_ids.append(next_token_id)
+
+            if next_token_id == eos_token_id:
+                break
+
+            tgt_input_ids = torch.cat([tgt_input_ids, torch.tensor([[next_token_id]], dtype=torch.long).to(device)], dim=1)
+
+        generated_text = tokenizer.decode(generated_ids, skip_special_tokens=True)
+
+        # Display the input and translated output
+        print(f"Input (English): {input_text}")
+        print(f"Output (French): {generated_text}")
+

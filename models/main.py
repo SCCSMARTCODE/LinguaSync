@@ -33,7 +33,6 @@ def main():
     print("Initializing model...")
 
     model = NMTModel(
-        encoder_model_name="bert-base-multilingual-cased",
         vocab_size=hparams.VOCAB_SIZE,
         embed_size=hparams.D_MODEL,
         hidden_size=hparams.D_MODEL,

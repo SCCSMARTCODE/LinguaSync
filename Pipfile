@@ -10,6 +10,8 @@ flask = "*"
 pandas = "*"
 python-dotenv = "*"
 googletrans = "*"
+tokenizers = "*"
+git-filter-repo = "*"
 
 [dev-packages]
 

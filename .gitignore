@@ -165,3 +165,7 @@ cython_debug/
 
 
 desktop.ini
+
+
+# ignored due to size
+models/data/tokenized_dataset.pt
