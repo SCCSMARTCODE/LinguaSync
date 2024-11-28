@@ -68,12 +68,13 @@ def validate_model(model, val_loader, criterion, device):
     print(f"Validation Loss: {avg_loss:.4f}")
 
 
-def evaluate_translation(model, tokenizer, input_text, device, max_len=128):
+def evaluate_translation(model, tokenizer, tokenizer_path, input_text, device, max_len=64):
     """
     Generate a translation for the given input text using the custom tokenizer and model.
 
     :param model: Trained NMT model.
     :param tokenizer: Custom tokenizer with encode/decode functionality.
+    :param tokenizer_path: Path to tokenizer metadata.
     :param input_text: Text in the source language (English).
     :param device: Device (CPU or GPU).
     :param max_len: Maximum length for generated sequences.
@@ -81,7 +82,7 @@ def evaluate_translation(model, tokenizer, input_text, device, max_len=128):
     model.eval()
     with torch.no_grad():
 
-        tokenized = tokenize_sentence(tokenizer, input_text, max_length=max_len)
+        tokenized = tokenize_sentence(tokenizer_path, input_text, max_length=max_len)
         input_ids = torch.tensor([tokenized['input_ids']], dtype=torch.long).to(device)
         attention_mask = torch.tensor([tokenized['attention_mask']], dtype=torch.long).to(device)
 
