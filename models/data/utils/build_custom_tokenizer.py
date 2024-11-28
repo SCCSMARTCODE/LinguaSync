@@ -1,39 +1,88 @@
 import os
 import pandas as pd
-from tokenizers import Tokenizer, models, trainers, pre_tokenizers, normalizers
+import re
+from collections import Counter
 
 
-def train_tokenizer(data_file, output_dir, vocab_size=10000, min_frequency=2):
-    """
-    Train a BPE tokenizer on a given text file.
+class Tokenizer:
+    def __init__(self, special_tokens=None):
 
-    :param data_file: Path to the dataset text file.
-    :param output_dir: Directory where the tokenizer files will be saved.
-    :param vocab_size: Size of the vocabulary.
-    :param min_frequency: Minimum frequency of a token to be included in the vocabulary.
-    """
-    os.makedirs(output_dir, exist_ok=True)
+        """
+        Initialize the Tokenizer with optional special tokens.
 
-    tokenizer = Tokenizer(models.BPE())
+        :param special_tokens: List of special tokens like <pad>, <unk>, <s>, </s>.
+        """
+        if special_tokens is None:
+            special_tokens = ["<pad>", "<unk>", "<s>", "</s>"]
 
-    tokenizer.normalizer = normalizers.Sequence([
-        normalizers.NFD(),
-        normalizers.Lowercase(),
-        normalizers.StripAccents()
-    ])
-    tokenizer.pre_tokenizer = pre_tokenizers.Whitespace()
+        self.special_tokens = special_tokens
+        self.token_to_idx = {token: idx for idx, token in enumerate(special_tokens)}
+        self.idx_to_token = {idx: token for token, idx in self.token_to_idx.items()}
+        self.is_vocab_created = False
 
-    special_tokens = ["<s>", "</s>", "<unk>", "<pad>"]
-    trainer = trainers.BpeTrainer(
-        vocab_size=vocab_size,
-        min_frequency=min_frequency,
-        special_tokens=special_tokens
-    )
+    def build_vocab(self, sentences, min_frequency=2):
+        """
+        Build a vocabulary from a list of sentences.
 
-    tokenizer.train(files=[data_file], trainer=trainer)
+        :param sentences: List of strings (sentences) to build the vocabulary from.
+        :param min_frequency: Minimum frequency for a word to be included in the vocabulary.
+        """
+        # Clean and tokenize sentences
+        words = []
+        for sentence in sentences:
+            words.extend(self._clean_and_tokenize(sentence))
 
-    tokenizer.save(os.path.join(output_dir, "bpe_tokenizer.json"))
-    print(f"Tokenizer trained and saved at {os.path.join(output_dir, 'bpe_tokenizer.json')}")
+        # Count word frequencies
+        word_counts = Counter(words)
+
+        # Add words meeting the min_frequency criteria
+        for word, count in word_counts.items():
+            if count >= min_frequency and word not in self.token_to_idx:
+                idx = len(self.token_to_idx)
+                self.token_to_idx[word] = idx
+                self.idx_to_token[idx] = word
+        self.is_vocab_created = True
+
+    def tokenize(self, sentence):
+        """
+        Tokenize a sentence into a list of token indices.
+
+        :param sentence: Input sentence as a string.
+        :return: List of token indices.
+        """
+        if not self.is_vocab_created:
+            print("Vocab is not available...")
+        tokens = self._clean_and_tokenize(sentence)
+        return [self.token_to_idx.get(token, self.token_to_idx["<unk>"]) for token in tokens]
+
+    def detokenize(self, token_indices):
+        if not self.is_vocab_created:
+            print("Vocab is not available...")
+        """
+        Convert a list of token indices back to a sentence.
+
+        :param token_indices: List of token indices.
+        :return: Detokenized sentence as a string.
+        """
+        tokens = [self.idx_to_token.get(idx, "<unk>") for idx in token_indices]
+        return " ".join(tokens)
+
+    @property
+    def vocab_size(self):
+        if not self.is_vocab_created:
+            print("Vocab is not available...")
+        """Return the size of the vocabulary."""
+        return len(self.token_to_idx)
+
+    def _clean_and_tokenize(self, sentence):
+        """
+        Clean and tokenize a sentence.
+
+        :param sentence: Input sentence as a string.
+        :return: List of cleaned tokens.
+        """
+        sentence = re.sub(r"[^\w\s]", "", sentence.lower())
+        return sentence.split()
 
 
 def make_txt(csv_path, dest_path):
@@ -65,56 +114,33 @@ def make_txt(csv_path, dest_path):
         print(f"Error processing CSV file: {e}")
 
 
-def tokenize_sentence(tokenizer_path, sentence, max_length):
+def tokenize_sentence(tokenizer: Tokenizer, sentence: str, max_length: int):
     """
     Tokenizes a given sentence using the provided tokenizer.
 
-    :param tokenizer_path: Path to the trained tokenizer file.
+    :param tokenizer: Instance of the Tokenizer class.
     :param sentence: Sentence to tokenize.
     :param max_length: Maximum length for padding/truncation.
     :return: Dictionary containing input IDs and attention mask.
     """
-    if not os.path.exists(tokenizer_path):
-        raise FileNotFoundError(f"Tokenizer file '{tokenizer_path}' not found.")
+    token_ids = tokenizer.tokenize(sentence)
 
-    tokenizer = Tokenizer.from_file(tokenizer_path)
+    special_tokens = {
+        "<s>": tokenizer.token_to_idx["<s>"],
+        "</s>": tokenizer.token_to_idx["</s>"],
+        "<pad>": tokenizer.token_to_idx["<pad>"]
+    }
 
-    token = tokenizer.encode(sentence)
-    special_tokens = {"<s>": tokenizer.token_to_id("<s>"), "</s>": tokenizer.token_to_id("</s>"), "<pad>": tokenizer.token_to_id("<pad>")}
+    token_ids = [special_tokens["<s>"]] + token_ids[:max_length - 2] + [special_tokens["</s>"]]
 
-    token_ids = [special_tokens["<s>"]] + token.ids[:max_length - 2] + [special_tokens["</s>"]]
-
-    # Padding
     padded_ids = token_ids + [special_tokens["<pad>"]] * (max_length - len(token_ids))
 
-    # Attention mask
     attention_mask = [1] * len(token_ids) + [0] * (max_length - len(token_ids))
+
+    padded_ids = padded_ids[:max_length]
+    attention_mask = attention_mask[:max_length]
 
     return {
         "input_ids": padded_ids,
         "attention_mask": attention_mask
     }
-
-
-if __name__ == "__main__":
-    # Example usage
-    DATA_FILE = "../english_french_corpus.txt"  # Path to your dataset
-    OUTPUT_DIR = "tokenizer/"  # Directory to save the tokenizer
-    CSV_FILE = "../eng_french.csv"
-
-    # Generate the text file from CSV
-    make_txt(CSV_FILE, DATA_FILE)
-
-    # Train the tokenizer
-    train_tokenizer(DATA_FILE, OUTPUT_DIR)
-
-    # Example tokenization
-    TOKENIZER_PATH = os.path.join(OUTPUT_DIR, "bpe_tokenizer.json")
-    example_sentence = "This is a test sentence for tokenization."
-    max_len = 20
-
-    try:
-        tokenized_output = tokenize_sentence(TOKENIZER_PATH, example_sentence, max_len)
-        print("Tokenized Output:", tokenized_output)
-    except Exception as e:
-        print(f"Error during tokenization: {e}")

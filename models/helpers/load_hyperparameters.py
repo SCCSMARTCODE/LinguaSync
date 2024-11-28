@@ -11,7 +11,8 @@ class Hyperparameters:
     NUM_HEADS = int(os.getenv("NUM_HEADS"))
     NUM_LAYERS = int(os.getenv("NUM_LAYERS"))
     DROPOUT = float(os.getenv("DROPOUT"))
-    VOCAB_SIZE = int(os.getenv("VOCAB_SIZE"))
+    ENGLISH_VOCAB_SIZE = int(os.getenv("ENGLISH_VOCAB_SIZE"))
+    FRENCH_VOCAB_SIZE = int(os.getenv("FRENCH_VOCAB_SIZE"))
 
     # Training Parameters
     BATCH_SIZE = int(os.getenv("BATCH_SIZE"))

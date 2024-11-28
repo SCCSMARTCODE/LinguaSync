@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class NMTModel(nn.Module):
-    def __init__(self, vocab_size, embed_size, hidden_size, num_layers, num_heads, dropout=0.1):
+    def __init__(self, en_vocab_size, fr_vocab_size, embed_size, hidden_size, num_layers, num_heads, dropout=0.1):
         """
         Initializes the NMT Model with a custom Transformer encoder and decoder.
 
@@ -17,8 +17,8 @@ class NMTModel(nn.Module):
         super(NMTModel, self).__init__()
 
         # Embedding layers for both source and target
-        self.src_embedding = nn.Embedding(vocab_size, embed_size)
-        self.tgt_embedding = nn.Embedding(vocab_size, embed_size)
+        self.src_embedding = nn.Embedding(en_vocab_size, embed_size)
+        self.tgt_embedding = nn.Embedding(fr_vocab_size, embed_size)
 
         # Positional Encoding
         self.positional_encoding = nn.Parameter(self._get_positional_encoding(embed_size, max_len=512), requires_grad=False)
@@ -42,7 +42,7 @@ class NMTModel(nn.Module):
         self.decoder = nn.TransformerDecoder(decoder_layer, num_layers=num_layers)
 
         # Final output layer
-        self.fc_out = nn.Linear(hidden_size, vocab_size)
+        self.fc_out = nn.Linear(hidden_size, fr_vocab_size)
 
         # Dropout layer
         self.dropout = nn.Dropout(dropout)
@@ -73,7 +73,7 @@ class NMTModel(nn.Module):
         :param tgt_attention_mask: Target attention mask.
         :return: Output logits for predictions.
         """
-        # Embed source inputs and add positional encoding
+
         src_embeddings = self.src_embedding(src_input_ids) + self.positional_encoding[:, :src_input_ids.size(1), :]
         src_embeddings = self.dropout(src_embeddings)
 
@@ -91,7 +91,6 @@ class NMTModel(nn.Module):
         tgt_seq_len = tgt_input_ids.size(1)
         tgt_mask = nn.Transformer.generate_square_subsequent_mask(tgt_seq_len).to(tgt_input_ids.device)
 
-        # Transformer Decoder Forward Pass
         decoder_outputs = self.decoder(
             tgt=tgt_embeddings.permute(1, 0, 2),  # (tgt_len, batch_size, embed_size)
             memory=memory,                        # (src_len, batch_size, hidden_size)
@@ -99,6 +98,5 @@ class NMTModel(nn.Module):
             memory_key_padding_mask=~src_attention_mask.bool()  # Cross-attention mask
         )
 
-        # Final Linear Layer
         output = self.fc_out(decoder_outputs.permute(1, 0, 2))  # (batch_size, tgt_len, vocab_size)
         return output
