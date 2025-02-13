@@ -1,7 +1,7 @@
-# **NMT-Sync: Neural Machine Translation System**
+# **LinguaSync: Neural Machine Translation System**
 
 ## **Overview**
-**NMT-Sync** is a custom-built Neural Machine Translation (NMT) system, now focusing on English ↔ French translations. It implements a Transformer model from scratch, uses Hugging Face tools for tokenization and dataset management, and provides a user-friendly web interface powered by Flask. The system is fully containerized with Docker to ensure portability and scalability.
+**LinguaSync** is a custom-built Neural Machine Translation (NMT) system, now focusing on English ↔ French translations. It implements a Transformer model from scratch, uses Hugging Face tools for tokenization and dataset management, and provides a user-friendly web interface powered by Flask. The system is fully containerized with Docker to ensure portability and scalability.
 
 ---
 
@@ -85,7 +85,7 @@
 
 ## **Project Structure**
 ```
-NMT-Sync/
+LinguaSync/
 │
 ├── src/
 │   ├── model/
